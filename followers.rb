@@ -14,16 +14,20 @@ twitters = [
 puts "Twitter intersection for #{twitters.map{|twitter| twitter[:screen_name]}.join(", ")}"
 
 def remaining_api_calls
-  resp = Net::HTTP.get_response(URI.parse("http://api.twitter.com/1/account/rate_limit_status.json"))
-  json = JSON.parse(resp.body)
-  remaining_hits = json["remaining_hits"] 
-  if remaining_hits == 0
-    sleep_time = (Time.parse(json["reset_time"]) - Time.now).to_i + 1
-    puts "no more hits - sleeps #{sleep_time} seconds until reset at #{Time.parse(json["reset_time"])}"
-    sleep sleep_time
-    remaining_hits = 1
+  begin
+    resp = Net::HTTP.get_response(URI.parse("http://api.twitter.com/1/account/rate_limit_status.json"))
+    json = JSON.parse(resp.body)
+    remaining_hits = json["remaining_hits"] 
+    #if remaining_hits == 0
+    #  sleep_time = (Time.parse(json["reset_time"]) - Time.now).to_i + 1
+    #  puts "no more hits - sleeps #{sleep_time} seconds until reset at #{Time.parse(json["reset_time"])}"
+    #  sleep sleep_time
+    #  remaining_hits = 1
+    #end
+    return remaining_hits
+  rescue
+    return 0
   end
-  return remaining_hits
 end
 
 def request_json(url)
@@ -73,7 +77,7 @@ def fetch_data(followers)
   data = []
   follower_packets = 100
   
-  puts "Followers to fetch: #{followers}"
+  puts "Followers to fetch: #{followers.size}"
 
   while !followers.empty?
     url = "http://api.twitter.com/1/users/lookup.json?user_id=" + followers.pop(follower_packets).join(",")

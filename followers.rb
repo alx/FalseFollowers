@@ -16,12 +16,14 @@ puts "Twitter intersection for #{twitters.map{|twitter| twitter[:screen_name]}.j
 def remaining_api_calls
   resp = Net::HTTP.get_response(URI.parse("http://api.twitter.com/1/account/rate_limit_status.json"))
   json = JSON.parse(resp.body)
-  #if json["remaining_hits"] == 0
-  # sleep_time = (Time.parse(json["reset_time"]) - Time.now).to_i + 1
-  # puts "no more hits - sleeps #{sleep_time} seconds until reset at #{Time.parse(json["reset_time"])}"
-  # sleep sleep_time
-  #end
-  return json["remaining_hits"]
+  remaining_hits = json["remaining_hits"] 
+  if remaining_hits == 0
+    sleep_time = (Time.parse(json["reset_time"]) - Time.now).to_i + 1
+    puts "no more hits - sleeps #{sleep_time} seconds until reset at #{Time.parse(json["reset_time"])}"
+    sleep sleep_time
+    remaining_hits = 1
+  end
+  return remaining_hits
 end
 
 def request_json(url)
@@ -70,6 +72,8 @@ end
 def fetch_data(followers)
   data = []
   follower_packets = 100
+  
+  puts "Followers to fetch: #{followers}"
 
   while !followers.empty?
     url = "http://api.twitter.com/1/users/lookup.json?user_id=" + followers.pop(follower_packets).join(",")
@@ -95,8 +99,6 @@ end
 
 filename = twitters.map{|twitter| twitter[:screen_name]}.join("-") + ".csv"
 followers = common_followers(twitters)
-p followers.size
 followers -= existing_followers(filename)
-p followers.size
 data = fetch_data(followers)
 create_csv(filename, data)

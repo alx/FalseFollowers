@@ -89,7 +89,6 @@ def fetch_data(followers)
 end
 
 def create_csv(filename, data)
-  puts "status\tfollow\tfriends\tname"
   CSV.open(filename, "ab") do |csv|
     data.sort{|a, b| a["statuses_count"]<=>b["statuses_count"]}.each do |screen|
       csv << screen.values

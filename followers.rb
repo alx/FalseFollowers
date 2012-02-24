@@ -4,14 +4,7 @@ require 'json'
 require 'csv'
 require 'time'
 require 'date'
-
-twitters = [
-  {:screen_name => "NicolasSarkozy", :followers => []},
-  {:screen_name => "nadine__morano", :followers => []}
-]
-#twitters = [{:screen_name => "alx", :followers => []},{:screen_name => "tetalab", :followers => []}]
-
-puts "Twitter intersection for #{twitters.map{|twitter| twitter[:screen_name]}.join(", ")}"
+require 'googlecharts'
 
 def remaining_api_calls
   begin
@@ -100,8 +93,65 @@ def existing_followers(filename)
   return CSV.read(filename).map{|t| t.first.to_i}
 end
 
+def create_csv_data(twitters, filename)
+  followers = common_followers(twitters)
+  followers -= existing_followers(filename)
+  data = fetch_data(followers)
+  create_csv(filename, data)
+end
+
+def analyse_csv_data(filename)
+  twitters = CSV.read(filename)
+  puts "before filter : #{twitters.size}"
+  followings = {:max => 99999999, :min => 0, :total => 0}
+  row_id = 0
+  row_created_at = 2
+  row_tweet_count = 30
+  row_followers_count = 7
+  row_following_count = 35
+  twitters.select! do |twitter|
+    twitter[row_tweet_count].to_i < 2 &&
+    twitter[row_followers_count].to_i < 2
+  end
+  puts "after filter : #{twitters.size}"
+  puts twitters.first.inspect
+
+  dates = {}
+  full_dates = {}
+
+  twitters.each do |twitter|
+    begin
+      datetime = DateTime.parse(twitter[row_created_at]).strftime("%Y%m%d")
+      if dates[datetime]
+        dates[datetime] += 1
+      else
+        dates[datetime] = 1
+      end
+    rescue
+      # puts twitter.inspect
+    end
+  end
+  dates.reject!{|k,v| k=="18164834670109"}
+  start_date = DateTime.parse "19/11/2008"
+  end_date = DateTime.parse "20/02/2012"
+
+  while start_date < end_date
+    full_dates[start_date.strftime("%Y%m%d")] = dates[start_date.strftime("%Y%m%d")] || 0
+    start_date += 1
+  end
+
+  puts Gchart.line(:data => full_dates.values, :size => "500x200")
+end
+
+twitters = [
+  {:screen_name => "NicolasSarkozy", :followers => []},
+  {:screen_name => "nadine__morano", :followers => []}
+]
+#twitters = [{:screen_name => "alx", :followers => []},{:screen_name => "tetalab", :followers => []}]
+
 filename = twitters.map{|twitter| twitter[:screen_name]}.join("-") + ".csv"
-followers = common_followers(twitters)
-followers -= existing_followers(filename)
-data = fetch_data(followers)
-create_csv(filename, data)
+
+puts "Twitter intersection for #{twitters.map{|twitter| twitter[:screen_name]}.join(", ")}"
+
+# create_csv_data(twitters, filename)
+analyse_csv_data(filename)
